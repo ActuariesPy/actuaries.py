@@ -39,33 +39,44 @@ age[age>=130] = (ones * 130)[age>=130]
 
 # ccreate vector
 qx = np.take_along_axis(qx_table,age.astype(int),axis=1)
-qx[age > age_end] = 0
+
 
 # todo à vérifier
 duration = ones.cumsum(axis=1)
 
 # Lapse rate
-lapse_rate = np.maximum(0.1 - 0.02 * duration, ones * 0.02)
-
-pols_maturity = zeros.copy()
-
-pols_death = zeros.copy()
-pols_if = zeros.copy()
-pols_lapse = zeros.copy()
+# lapse_rate = np.maximum(0.1 - 0.02 * duration, ones * 0.02)
+#
+# pols_maturity = zeros.copy()
+#
+# pols_death = zeros.copy()
+# pols_if = zeros.copy()
+# pols_lapse = zeros.copy()
 policy_term = ones * (pol['MaxPolicyTerm']).to_numpy()[:, np.newaxis]
+#
+# pols_if[:, 0] = 1 # Same as pol_init
 
-pols_if[:, 0] = 1 # Same as pol_init
+
+PolsMaturity = zeros.copy()
+PolsIF_End = zeros.copy()
+PolsIF_AftMat =zeros.copy()
+PolsIF_End = zeros.copy()
+PolsMaturity = zeros.copy()
+PolsDeath = zeros.copy()
+
 
 # Inforces
 for i in range(0, n_max):
-    pols_maturity[:, i] = pols_if[:, i - 1] * (policy_term[:, i] == duration[:, i])*1
-    pols_death[:, i] = pols_if[:, i] * qx[:, i]
-    pols_lapse[:, i] = (pols_if[:, i] - pols_death[:, i]) * (1 - (1 - lapse_rate[:,i])**(1/12))
+    PolsIF_End[:, i] = PolsIF_AftMat[:, i - 1] - PolsDeath[:, i - 1]
+    PolsMaturity[:, i] = (policy_term[:, i] == duration[:, i]) * PolsIF_End[:, i]
 
     if i == 0:
-        pols_if[:,i] = ones.copy()[:,i]
+        PolsIF_AftMat[:, i] = ones.copy()[:, i]
     else:
-        pols_if[:, i] = pols_if[:, i - 1] - pols_death[:, i - 1] - pols_lapse[:, i - 1] - pols_maturity[:, i]
+        PolsIF_AftMat[:, i] = PolsIF_End[:, i] - PolsMaturity[:, i]
+
+    PolsDeath[:, i] = PolsIF_AftMat[:, i] * qx[:, i] # * asmp.MortFactor(t)
+
 
 
 
